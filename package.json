@@ -1,0 +1,26 @@
+{
+    "name": "voting",
+    "version": "1.0.0",
+    "description": "voting",
+    "main": "app.js",
+    "scripts": {
+        "start": "node --use_strict app.js"
+    },
+    "keywords": [
+        "sequelize",
+        "async"
+    ],
+    "author": "Leo",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/michaelliao/learn-javascript.git"
+    },
+    "dependencies": {
+        "sequelize": "3.24.1",
+        "mysql": "2.11.1",
+        "koa": "2.0.0",
+        "koa-bodyparser": "3.2.0",
+        "koa-router": "7.0.0"
+    }
+}
