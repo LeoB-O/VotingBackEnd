@@ -24,7 +24,7 @@
 }
 ```
 
-## API
+## 前端接口
 ### 初始化投票首页
 ```
 [GET] api/votes 
@@ -118,5 +118,149 @@ body:
 {
   "success": true,
   "data": {}
+}
+```
+
+## 后台接口
+### 登录操作
+```
+[POST] /admin/login
+```
+#### 提交数据
+```
+body:
+{
+  "username": "admin",
+  "password": "admin"
+}
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": {
+    "token": "xxx-xxx-xxx"
+  }
+}
+```
+
+### 注销操作
+```
+[POST] /admin/logout
+```
+#### 提交数据
+```
+body:
+{
+  "username": "xxxx",
+  "token": "xxx-xxx-xxx" // token 随机生成
+}
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": {
+  }
+}
+```
+
+### 获取设置信息接口
+```
+[GET] /admin/setting
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": {
+    "title": "abc",    // 标题
+    "summary": "abc",  // 简介内容
+    "starttime": "",   // 开始时间
+    "endtime": ""      // 截止时间
+  }
+}
+```
+
+### 保存设置信息接口
+```
+[POST] /admin/setting
+```
+#### 提交数据
+```
+body:
+{
+  "title": "abc",    // 标题
+  "summary": "abc",  // 简介内容
+  "starttime": "",   // 开始时间
+  "endtime": ""      // 截止时间
+}
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": {
+  }
+}
+```
+
+### 获取排行结果接口
+```
+[GET] /admin/result
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": [
+    {
+      "name": "acc",
+      "votes": 100
+    },
+    {
+      "name": "bcc",
+      "votes": 50
+    }
+  ]
+}
+```
+
+### 修改排行结果接口
+```
+[POST] /admin/result
+```
+#### 提交数据
+```
+body:
+{
+  "name": "",   // 获选人名字
+  "votes": 100, // 新的票数
+}
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": {
+  }
+}
+```
+
+### 获取IP列表
+```
+[GET] /admin/ip
+```
+#### 返回数据
+```
+{
+  "success": true,
+  "data": [
+    {
+      "ip": "",   // ipv4
+      "user": "", // 候选人姓名
+      "time": "", // 时间
+    }
+  ]
 }
 ```
