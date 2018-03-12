@@ -5,46 +5,42 @@ let Setting = model.Setting;
 let User = model.User;
 let Vote_log = model.Vote_log;
 
-function valid_token(token) {
-
-}
-
-function randomWord(randomFlag, min, max){
-  var str = "",
-      range = min,
-      arr = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
-  // 随机产生
-  if(randomFlag){
-      range = Math.round(Math.random() * (max-min)) + min;
-  }
-  for(var i=0; i<range; i++){
-      pos = Math.round(Math.random() * (arr.length-1));
-      str += arr[pos];
-  }
-  return str;
+function getError(err) {
+  let rtn = {};
+  let data = {};
+  data["msg"] = err.message;
+  rtn["data"] = data;
+  return rtn;
 }
 
 module.exports = {
   "GET /api/votes": async (ctx, next) => {
-    var rtn = {};
-    rtn["success"] = true;
-    var data = {};
-    var temp_array = [];
-    var temp_map = {};
-    var candidate = await Candidate.findAll({
-      attributes: ["id", "name", "info", "vote_num", "avater"]
-    });
-    var setting = await Setting.findAll({ attributes: ["key", "value"] });
+    let rtn = {};
+    let data = {};
+    let temp_array = [];
+    try {
+      let candidate = await Candidate.findAll({
+        attributes: ["id", "name", "info", "vote_num", "avater"]
+      });
+      let setting = await Setting.findAll({ attributes: ["key", "value"] });
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
     if (!candidate || !setting) {
       rtn["success"] = false;
       data["msg"] = "empty or db error";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
     }
     for (let s of setting) {
       s = s.get({ plain: true });
       data[s["key"]] = s["value"];
     }
     for (let c of candidate) {
-      var temp_map = {};
+      let temp_map = {};
       temp_map["id"] = c["id"];
       temp_map["name"] = c["name"];
       temp_map["avater"] = c["avater"];
@@ -52,46 +48,51 @@ module.exports = {
       temp_map["votes"] = c["vote_num"];
       temp_array.push(temp_map);
     }
-    if (candidate) {
-      data["candidates"] = temp_array;
-    }
+    data["candidates"] = temp_array;
+    rtn["success"] = true;
     rtn["data"] = data;
     ctx.response.body = rtn;
   },
   "GET /api/rank": async (ctx, next) => {
-    var rtn = {};
-    var data = [];
-    var temp_array = [];
-    rtn["success"] = true;
-    var candidate = await Candidate.findAll({
-      attributes: ["name", "vote_num"],
-      order: "vote_num DESC"
-    });
+    let rtn = {};
+    let data = [];
+    let temp_array = [];
+    try {
+      let candidate = await Candidate.findAll({
+        attributes: ["name", "vote_num"],
+        order: "vote_num DESC"
+      });
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
     if (!candidate) {
       rtn["success"] = false;
       rtn["data"]["msg"] = "empty or db error";
+      ctx.response.body = rtn;
+      return;
     }
     for (let c of candidate) {
-      var temp_map = {};
+      let temp_map = {};
       temp_map["name"] = c["name"];
       temp_map["votes"] = c["vote_num"];
       temp_array.push(temp_map);
     }
-    if (candidate) {
-      rtn["data"] = temp_array;
-    }
+    rtn["success"] = true;
+    rtn["data"] = temp_array;
     ctx.response.body = rtn;
   },
   "POST /api/vote": async (ctx, next) => {
-    var id = ctx.request.body["id"];
-    var ip = ctx.request.header["x-forwarded-for"];
-    if (ip == null || ip.Length == 0 || !ip) {
+    let id = ctx.request.body["id"];
+    let ip = ctx.request.header["x-forwarded-for"];
+    if (!ip || ip.Length == 0) {
       ip = ctx.request.header["Proxy-Client-IP"];
     }
-    if (ip == null || ip.Length == 0 || !ip) {
+    if (!ip || ip.Length == 0) {
       ip = ctx.request.header["WL-Proxy-Client-IP"];
     }
-    if (ip == null || ip.Length == 0 || !ip) {
+    if (!ip || ip.Length == 0) {
       ip = ctx.request.ip;
     }
     ip = ip
@@ -100,46 +101,68 @@ module.exports = {
       .split(",")
       .pop();
     if (!id) {
-      var rtn = {};
+      let rtn = {};
       rtn["success"] = false;
       rtn["data"] = {};
       rtn["data"]["msg"] = "Params Error! Expect id!";
       ctx.response.body = rtn;
       return;
     }
-    var candidate = await Candidate.find({ where: { id: id } });
+    try {
+      let candidate = await Candidate.find({ where: { id: id } });
+    } catch (err) {
+      let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
     if (!candidate) {
-      var rtn = {};
+      let rtn = {};
       rtn["success"] = false;
       rtn["data"] = {};
       rtn["data"]["msg"] = "id does not exist";
       ctx.response.body = rtn;
       return;
     }
-    var vote_log = await Vote_log.find({
-      where: {
-        ip: ip
-      },
-      order: [["id", "DESC"]]
-    });
+    try {
+      let vote_log = await Vote_log.find({
+        where: { ip: ip },
+        order: [["id", "DESC"]]
+      });
+    } catch (err) {
+      let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
     if (!vote_log) {
       let vote_to = [id];
-      await Vote_log.create({
-        ip: ip,
-        vote_times: 1,
-        vote_to: JSON.stringify(vote_to)
-      });
-    } else {
-      var interval = Date.now() - vote_log["updated_at"];
-      if (60 * 60 * 24 < interval) {
-        let vote_to = [id];
+      try {
         await Vote_log.create({
           ip: ip,
           vote_times: 1,
           vote_to: JSON.stringify(vote_to)
         });
+      } catch (err) {
+        let rtn = getError(err);
+        ctx.response.body = rtn;
+        return;
+      }
+    } else {
+      let interval = Date.now() - vote_log["updated_at"];
+      if (60 * 60 * 24 < interval) {
+        let vote_to = [id];
+        try {
+          await Vote_log.create({
+            ip: ip,
+            vote_times: 1,
+            vote_to: JSON.stringify(vote_to)
+          });
+        } catch (err) {
+          let rtn = getError(err);
+          ctx.response.body = rtn;
+          return;
+        }
       } else if (vote_log["vote_times"] >= 10) {
-        var rtn = {};
+        let rtn = {};
         rtn["success"] = false;
         rtn["data"] = {};
         rtn["data"]["msg"] = "Reach Max vote times!";
@@ -149,7 +172,7 @@ module.exports = {
         let vote_to = JSON.parse(vote_log["vote_to"]);
         for (let c of vote_to) {
           if (c == id) {
-            var rtn = {};
+            let rtn = {};
             rtn["success"] = false;
             rtn["data"] = {};
             rtn["data"]["msg"] = "Can't repeat vote to one person";
@@ -174,19 +197,21 @@ module.exports = {
       }
     }
     candidate = candidate.get();
-    var votes = candidate["vote_num"] + 1;
-    await Candidate.update(
-      {
-        vote_num: votes,
-        updated_at: Date.now()
-      },
-      {
-        where: {
-          id: id
-        }
-      }
-    );
-    var rtn = {};
+    let votes = candidate["vote_num"] + 1;
+    try {
+      await Candidate.update(
+        {
+          vote_num: votes,
+          updated_at: Date.now()
+        },
+        { where: { id: id } }
+      );
+    } catch (err) {
+      let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    let rtn = {};
     rtn["success"] = true;
     rtn["data"] = {};
     ctx.response.body = rtn;

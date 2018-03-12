@@ -112,26 +112,27 @@ module.exports = {
     let password = ctx.request.body["password"];
     let rtn = {};
     let data = {};
-    let user = await User.find({ where: { user_name: username } });
-    let find_token = await Token.find({ where: { user_name: username } });
+    try {
+      let user = await User.find({ where: { user_name: username } });
+      let find_token = await Token.find({ where: { user_name: username } });
+      let all_token = await Token.findAll();
+    } catch (err) {
+      let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    let now = Date.now();
+    for (let t of all_token) {
+      let interval = now - t["updated_at"];
+      if (interval > 60 * 30 * 1000) {
+        await Token.destroy({ where: { id: t["id"] } });
+      }
+    }
     if (!username || !password) {
       rtn["success"] = false;
       data["errorcode"] = 400;
       data["msg"] = "Expect username password!";
       rtn["data"] = data;
-    }
-    if (find_token) {
-      let interval = Date.now() - find_token["updated_at"];
-      if (interval < 60 * 30 * 1000) {
-        rtn["success"] = false;
-        data["errorcode"] = 400;
-        data["msg"] = "Have logged in!";
-        rtn["data"] = data;
-        ctx.response.body = rtn;
-        return;
-      } else {
-        await Token.destroy({ where: { id: find_token["id"] } });
-      }
     }
     if (user["password"] != password) {
       data["errorcode"] = 400;
@@ -193,12 +194,12 @@ module.exports = {
       await Token.destroy({ where: { id: find_token["id"] } });
       find_token = null;
     }
-    rtn = valid_token(false, token, '', find_token);
+    rtn = valid_token(false, token, "", find_token);
     if (!rtn["success"]) {
       ctx.response.body = rtn;
       return;
     }
-    rtn["success"] = true;    
+    rtn["success"] = true;
     let setting = await Setting.findAll({ attributes: ["key", "value"] });
     if (!setting) {
       rtn["success"] = false;
@@ -232,19 +233,19 @@ module.exports = {
       await Token.destroy({ where: { id: find_token["id"] } });
       find_token = null;
     }
-    rtn = valid_token(false, token, '', find_token);
+    rtn = valid_token(false, token, "", find_token);
     if (!rtn["success"]) {
       ctx.response.body = rtn;
       return;
     }
     find_title = await Setting.find({ where: { key: "title" } });
-    find_title = find_title['value'];
+    find_title = find_title["value"];
     find_summary = await Setting.find({ where: { key: "summary" } });
-    find_summary = find_summary['value'];
+    find_summary = find_summary["value"];
     find_starttime = await Setting.find({ where: { key: "beginTime" } });
-    find_starttime = find_starttime['value'];
+    find_starttime = find_starttime["value"];
     find_endtime = await Setting.find({ where: { key: "endTime" } });
-    find_endtime = find_endtime['value'];
+    find_endtime = find_endtime["value"];
     await Setting.update(
       { value: title || find_title },
       { where: { key: "title" } }
@@ -282,7 +283,7 @@ module.exports = {
       await Token.destroy({ where: { id: find_token["id"] } });
       find_token = null;
     }
-    rtn = valid_token(false, token, '', find_token);
+    rtn = valid_token(false, token, "", find_token);
     if (!rtn["success"]) {
       ctx.response.body = rtn;
       return;
@@ -321,7 +322,7 @@ module.exports = {
       await Token.destroy({ where: { id: find_token["id"] } });
       find_token = null;
     }
-    rtn = valid_token(false, token, '', find_token);
+    rtn = valid_token(false, token, "", find_token);
     if (!rtn["success"]) {
       ctx.response.body = rtn;
       return;
@@ -366,7 +367,7 @@ module.exports = {
       await Token.destroy({ where: { id: find_token["id"] } });
       find_token = null;
     }
-    rtn = valid_token(false, token, '', find_token);
+    rtn = valid_token(false, token, "", find_token);
     if (!rtn["success"]) {
       ctx.response.body = rtn;
       return;
