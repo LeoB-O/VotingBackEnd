@@ -6,6 +6,6 @@ module.exports = db.defineModel('user', {
         type: db.STRING(20),
         primaryKey: true
     },
-    password: db.CHAR(32),
+    password: db.STRING(32),
     permission: db.INTEGER
 });
