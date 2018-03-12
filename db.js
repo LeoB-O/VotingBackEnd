@@ -41,6 +41,11 @@ function defineModel(name, attributes) {
       };
     }
   }
+  attrs.id = {
+    type: Sequelize.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  }
   attrs.created_at = {
     type: Sequelize.BIGINT,
     allowNull: false

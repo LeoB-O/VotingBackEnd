@@ -68,7 +68,6 @@ module.exports = {
       .pop()
       .split(",")
       .pop();
-    console.log(ip);
     if (!id) {
       var rtn = {};
       rtn["success"] = false;
@@ -89,11 +88,11 @@ module.exports = {
     var vote_log = await Vote_log.find({
       where: {
         ip: ip
-      }
+      },
+      order: [["id", "DESC"]]
     });
-    var vote_to = [];
-    vote_to.push(id);
     if (!vote_log) {
+      let vote_to = [id];
       await Vote_log.create({
         ip: ip,
         vote_times: 1,
@@ -101,52 +100,47 @@ module.exports = {
       });
     } else {
       var interval = Date.now() - vote_log["updated_at"];
-      vote_to = JSON.parse(vote_log["vote_to"]);
       if (60 * 60 * 24 < interval) {
-        await Vote_log.update(
-          {
-            vote_times: 0,
-            updated_at: Date.now(),
-            vote_to: "[]"
-          },
-          {
-            where: {
-              ip: ip
-            }
-          }
-        );
-      }
-      for (let c of vote_to) {
-        if (c == id) {
-          var rtn = {};
-          rtn["success"] = false;
-          rtn["data"] = {};
-          rtn["data"]["msg"] = "Can't repeat vote to one person";
-          ctx.response.body = rtn;
-          return;
-        }
-      }
-      vote_to.push(id);
-      if (60 * 60 * 24 > interval && vote_log["vote_times"] >= 5) {
+        let vote_to = [id];
+        await Vote_log.create({
+          ip: ip,
+          vote_times: 1,
+          vote_to: JSON.stringify(vote_to)
+        });
+      } else if (vote_log["vote_times"] >= 5) {
         var rtn = {};
         rtn["success"] = false;
         rtn["data"] = {};
         rtn["data"]["msg"] = "Reach Max vote times!";
         ctx.response.body = rtn;
         return;
-      }
-      await Vote_log.update(
-        {
-          vote_times: vote_log["vote_times"] + 1,
-          updated_at: Date.now(),
-          vote_to: JSON.stringify(vote_to)
-        },
-        {
-          where: {
-            ip: ip
+      } else {
+        let vote_to = JSON.parse(vote_log["vote_to"]);
+        for (let c of vote_to) {
+          if (c == id) {
+            var rtn = {};
+            rtn["success"] = false;
+            rtn["data"] = {};
+            rtn["data"]["msg"] = "Can't repeat vote to one person";
+            ctx.response.body = rtn;
+            return;
           }
         }
-      );
+        vote_to.push(id);
+        await Vote_log.update(
+          {
+            vote_times: vote_log["vote_times"] + 1,
+            updated_at: Date.now(),
+            vote_to: JSON.stringify(vote_to)
+          },
+          {
+            where: {
+              ip: ip,
+              id: vote_log["id"]
+            }
+          }
+        );
+      }
     }
     candidate = candidate.get();
     var votes = candidate["vote_num"] + 1;

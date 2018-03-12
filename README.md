@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# VotingBackEnd
-=======
 # VotingBackEnd
 ## Version
 > v1
@@ -267,4 +264,3 @@ body:
   ]
 }
 ```
->>>>>>> 628387145e4cbd495e63c24f9f87ecaa9c64ec90
