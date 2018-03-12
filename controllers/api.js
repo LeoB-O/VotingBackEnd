@@ -19,10 +19,10 @@ module.exports = {
     let data = {};
     let temp_array = [];
     try {
-      let candidate = await Candidate.findAll({
+      var candidate = await Candidate.findAll({
         attributes: ["id", "name", "info", "vote_num", "avater"]
       });
-      let setting = await Setting.findAll({ attributes: ["key", "value"] });
+      var setting = await Setting.findAll({ attributes: ["key", "value"] });
     } catch (err) {
       rtn = getError(err);
       ctx.response.body = rtn;
@@ -58,7 +58,7 @@ module.exports = {
     let data = [];
     let temp_array = [];
     try {
-      let candidate = await Candidate.findAll({
+      var candidate = await Candidate.findAll({
         attributes: ["name", "vote_num"],
         order: "vote_num DESC"
       });
@@ -109,7 +109,7 @@ module.exports = {
       return;
     }
     try {
-      let candidate = await Candidate.find({ where: { id: id } });
+      var candidate = await Candidate.find({ where: { id: id } });
     } catch (err) {
       let rtn = getError(err);
       ctx.response.body = rtn;
@@ -124,7 +124,7 @@ module.exports = {
       return;
     }
     try {
-      let vote_log = await Vote_log.find({
+      var vote_log = await Vote_log.find({
         where: { ip: ip },
         order: [["id", "DESC"]]
       });

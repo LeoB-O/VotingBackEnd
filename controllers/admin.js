@@ -28,6 +28,14 @@ function valid_token(valid_username, token, username, find_token) {
   return rtn;
 }
 
+function getError(err) {
+  let rtn = {};
+  let data = {};
+  data["msg"] = err.message;
+  rtn["data"] = data;
+  return rtn;
+}
+
 function randomWord(randomFlag, min, max) {
   var str = "",
     range = min,
@@ -113,9 +121,9 @@ module.exports = {
     let rtn = {};
     let data = {};
     try {
-      let user = await User.find({ where: { user_name: username } });
-      let find_token = await Token.find({ where: { user_name: username } });
-      let all_token = await Token.findAll();
+      var user = await User.find({ where: { user_name: username } });
+      var find_token = await Token.find({ where: { user_name: username } });
+      var all_token = await Token.findAll();
     } catch (err) {
       let rtn = getError(err);
       ctx.response.body = rtn;
@@ -164,7 +172,13 @@ module.exports = {
     }
     let find_token = await Token.find({ where: { token: token } });
     if (find_token && Date.now() - find_token["updated_at"] > 60 * 30 * 1000) {
-      await Token.destroy({ where: { id: find_token["id"] } });
+      try {
+        await Token.destroy({ where: { id: find_token["id"] } });
+      } catch (err) {
+        let rtn = getError(err);
+        ctx.response.body = rtn;
+        return;
+      }
       find_token = null;
     }
     rtn = valid_token(true, token, username, find_token);
@@ -172,7 +186,9 @@ module.exports = {
       ctx.response.body = rtn;
       return;
     }
-    await Token.destroy({ where: { token: token } });
+    try {
+      await Token.destroy({ where: { token: token } });
+    } catch (error) {}
     rtn["success"] = true;
     rtn["data"] = data;
     ctx.response.body = rtn;
@@ -201,6 +217,7 @@ module.exports = {
     }
     rtn["success"] = true;
     let setting = await Setting.findAll({ attributes: ["key", "value"] });
+    await Token.update({ updated_at: Date.now() }, { where: { token: token } });
     if (!setting) {
       rtn["success"] = false;
       data["msg"] = "empty or db error";
@@ -246,6 +263,7 @@ module.exports = {
     find_starttime = find_starttime["value"];
     find_endtime = await Setting.find({ where: { key: "endTime" } });
     find_endtime = find_endtime["value"];
+    await Token.update({ updated_at: Date.now() }, { where: { token: token } });
     await Setting.update(
       { value: title || find_title },
       { where: { key: "title" } }
@@ -289,7 +307,11 @@ module.exports = {
       return;
     }
     let vote_log = await Vote_log.findAll();
-    let candidate = await Candidate.findAll({ attributes: ["id", "name"] });
+    let candidate = await Candidate.findAll({
+      attributes: ["id", "name"],
+      order: "id ASC"
+    });
+    await Token.update({ updated_at: Date.now() }, { where: { token: token } });
     rtn["success"] = true;
     // TODO
     for (let v of vote_log) {
@@ -327,6 +349,7 @@ module.exports = {
       ctx.response.body = rtn;
       return;
     }
+    await Token.update({ updated_at: Date.now() }, { where: { token: token } });
     var temp_array = [];
     rtn["success"] = true;
     var candidate = await Candidate.findAll({
@@ -372,6 +395,7 @@ module.exports = {
       ctx.response.body = rtn;
       return;
     }
+    await Token.update({ updated_at: Date.now() }, { where: { token: token } });
     candidate = await Candidate.find({ name: name });
     if (!candidate) {
       rtn["success"] = false;
@@ -386,5 +410,203 @@ module.exports = {
     rtn["data"] = data;
     ctx.response.body = rtn;
     return;
+  },
+  "GET /admin/user": async (ctx, next) => {
+    let token = ctx.request.query["token"];
+    let rtn = {};
+    let data = [];
+    if (!token) {
+      rtn["success"] = false;
+      data["errorcode"] = 400;
+      data["msg"] = "Expect token";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
+    }
+    let find_token = await Token.find({ where: { token: token } });
+    if (find_token && Date.now() - find_token["updated_at"] > 60 * 30 * 1000) {
+      await Token.destroy({ where: { id: find_token["id"] } });
+      find_token = null;
+    }
+    rtn = valid_token(false, token, "", find_token);
+    if (!rtn["success"]) {
+      ctx.response.body = rtn;
+      return;
+    }
+    try {
+      await Token.update(
+        { updated_at: Date.now() },
+        { where: { token: token } }
+      );
+
+      var candidate = await Candidate.findAll({ order: "id ASC" });
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    for (let c of candidate) {
+      let temp_map = {};
+      temp_map["id"] = c["id"];
+      temp_map["name"] = c["name"];
+      temp_map["info"] = c["info"];
+      temp_map["votes"] = c["vote_num"];
+      temp_map["avater"] = c["avater"];
+      data.push(temp_map);
+    }
+    rtn["success"] = true;
+    rtn["data"] = data;
+    ctx.response.body = rtn;
+  },
+  "POST /admin/user": async (ctx, next) => {
+    let token = ctx.request.query["token"];
+    let id = ctx.request.body["id"];
+    let avater = ctx.request.body["avater"];
+    let name = ctx.request.body["name"];
+    let info = ctx.request.body["info"];
+    let rtn = {};
+    let data = {};
+    if (!token || !id || (!avater && !name && !info)) {
+      rtn["success"] = false;
+      data["errorcode"] = 400;
+      data["msg"] = "Expect token id avater name info";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
+    }
+    let find_token = await Token.find({ where: { token: token } });
+    if (find_token && Date.now() - find_token["updated_at"] > 60 * 30 * 1000) {
+      await Token.destroy({ where: { id: find_token["id"] } });
+      find_token = null;
+    }
+    rtn = valid_token(false, token, "", find_token);
+    if (!rtn["success"]) {
+      ctx.response.body = rtn;
+      return;
+    }
+    try {
+      var candidate = await Candidate.find({ where: { id: id } });
+      await Token.update(
+        { updated_at: Date.now() },
+        { where: { token: token } }
+      );
+
+      if (!candidate) {
+        rtn["success"] = false;
+        data["msg"] = "no such candidate";
+        data["errorcode"] = 400;
+        rtn["data"] = data;
+        ctx.response.body = rtn;
+      }
+      await Candidate.update(
+        {
+          avater: avater || candidate["avater"],
+          name: name || candidate["name"],
+          info: info || candidate["info"]
+        },
+        {
+          where: { id: id }
+        }
+      );
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    rtn["success"] = true;
+    rtn["data"] = data;
+    ctx.response.body = rtn;
+  },
+  "PUT /admin/user": async (ctx, next) => {
+    let token = ctx.request.query["token"];
+    let votes = ctx.request.body["votes"];
+    let avater = ctx.request.body["avater"];
+    let name = ctx.request.body["name"];
+    let info = ctx.request.body["info"];
+    let rtn = {};
+    let data = [];
+    if (!token || !votes || (!avater || !name || !info)) {
+      rtn["success"] = false;
+      data["errorcode"] = 400;
+      data["msg"] = "Expect token id avater name info";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
+    }
+    let find_token = await Token.find({ where: { token: token } });
+    if (find_token && Date.now() - find_token["updated_at"] > 60 * 30 * 1000) {
+      await Token.destroy({ where: { id: find_token["id"] } });
+      find_token = null;
+    }
+    rtn = valid_token(false, token, "", find_token);
+    if (!rtn["success"]) {
+      ctx.response.body = rtn;
+      return;
+    }
+    try {
+      await Token.update(
+        { updated_at: Date.now() },
+        { where: { token: token } }
+      );
+      await Candidate.create({
+        name: name,
+        info: info,
+        vote_num: votes,
+        avater: avater
+      });
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    rtn["success"] = true;
+    rtn["data"] = data;
+    ctx.response.body = rtn;
+  },
+  "DELETE /admin/user": async (ctx, next) => {
+    let token = ctx.request.query["token"];
+    let id = ctx.request.body["id"];
+    let rtn = {};
+    let data = {};
+    if (!token) {
+      rtn["success"] = false;
+      data["errorcode"] = 400;
+      data["msg"] = "Expect token";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
+    }
+    let find_token = await Token.find({ where: { token: token } });
+    if (find_token && Date.now() - find_token["updated_at"] > 60 * 30 * 1000) {
+      await Token.destroy({ where: { id: find_token["id"] } });
+      find_token = null;
+    }
+    rtn = valid_token(false, token, "", find_token);
+    if (!rtn["success"]) {
+      ctx.response.body = rtn;
+      return;
+    }
+    try {
+      await Token.update(
+        { updated_at: Date.now() },
+        { where: { token: token } }
+      );
+      var row_num = await Candidate.destroy({ where: { id: id } });
+    } catch (err) {
+      rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    if (row_num == 0) {
+      rtn["success"] = false;
+      data["msg"] = "no such candidate";
+      data["errorcode"] = "400";
+      rtn["data"] = data;
+      ctx.response.body = rtn;
+      return;
+    }
+    rtn["success"] = true;
+    rtn["data"] = data;
+    ctx.response.body = rtn;
   }
 };
