@@ -16,6 +16,10 @@ module.exports = {
       attributes: ["id", "name", "info", "vote_num", "avater"]
     });
     var setting = await Setting.findAll({ attributes: ["key", "value"] });
+    if (!candidate || !setting) {
+      rtn["success"] = false;
+      data["msg"] = "empty or db error";
+    }
     for (let s of setting) {
       s = s.get({ plain: true });
       data[s["key"]] = s["value"];
@@ -29,7 +33,9 @@ module.exports = {
       temp_map["votes"] = c["vote_num"];
       temp_array.push(temp_map);
     }
-    data["candidates"] = temp_array;
+    if (candidate) {
+      data["candidates"] = temp_array;
+    }
     rtn["data"] = data;
     ctx.response.body = rtn;
   },
@@ -42,13 +48,19 @@ module.exports = {
       attributes: ["name", "vote_num"],
       order: "vote_num DESC"
     });
+    if (!candidate) {
+      rtn["success"] = false;
+      rnt["data"]["msg"] = "empty or db error";
+    }
     for (let c of candidate) {
       var temp_map = {};
       temp_map["name"] = c["name"];
       temp_map["votes"] = c["vote_num"];
       temp_array.push(temp_map);
     }
-    rtn["data"] = temp_array;
+    if (candidate) {
+      rtn["data"] = temp_array;
+    }
     ctx.response.body = rtn;
   },
   "POST /api/vote": async (ctx, next) => {
@@ -164,6 +176,36 @@ module.exports = {
     var rtn = {};
     rtn["success"] = true;
     rtn["data"] = {};
+    ctx.response.body = rtn;
+  },
+  "GET /admin/setting": async (ctx, next) => {
+    let rnt = {};
+    rtn["success"] = true;
+    let data = {};
+    let setting = await Setting.findAll({ attributes: ["key", "value"] });
+    if (!setting) {
+      rtn["success"] = false;
+      data["msg"] = "empty or db error";
+    }
+    for (let s of setting) {
+      s = s.get({ plain: true });
+      data[s["key"]] = s["value"];
+    }
+    rnt["data"] = data;
+    ctx.response.body = rtn;
+  },
+  "GET /admin/ip": async (ctx, next) => {
+    let rnt = {};
+    rnt["success"] = true;
+    let data = {};
+    // TODO
+    ctx.response.body = rtn;
+  },
+  "GET /admin/result": async (ctx, next) => {
+    let rnt = {};
+    rnt["success"] = true;
+    let data = {};
+    // TODO
     ctx.response.body = rtn;
   }
 };
