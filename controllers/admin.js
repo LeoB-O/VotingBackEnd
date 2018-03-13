@@ -319,7 +319,12 @@ module.exports = {
         let temp_map = {};
         let date = new Date(v["updated_at"]);
         temp_map["ip"] = v["ip"];
-        temp_map["user"] = candidate[c]["name"];
+        for (let ca of candidate) {
+          if (ca["id"] == c) {
+            temp_map["user"] = ca["name"];
+          }
+        }
+        //temp_map["user"] = candidate[c]["name"];
         temp_map["time"] = date.toLocaleString();
         data.push(temp_map);
       }
