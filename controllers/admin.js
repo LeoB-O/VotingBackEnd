@@ -6,19 +6,25 @@ let User = model.User;
 let Vote_log = model.Vote_log;
 let Token = model.Token;
 
+const NO_TOKEN = 203;       //传递的参数中没有token
+const PARAM_ERROR = 400;    //缺少参数
+const PASSWORD_ERROR = 401; //密码错误
+const NOT_FOUND = 404;      //数据库无此内容
+const TOKEN_ERROR = 500;    //登录已过期 or username和token不匹配 or 错误的token
+
 function valid_token(valid_username, token, username, find_token) {
   let rtn = {};
   let data = {};
   if (!find_token) {
     rtn["success"] = false;
-    data["errorcode"] = 400;
+    data["errorcode"] = TOKEN_ERROR;
     data["msg"] = "User does not exist or has logged out!";
     rtn["data"] = data;
     return rtn;
   }
   if (valid_username && find_token["user_name"] != username) {
     rtn["success"] = false;
-    data["errorcode"] = 400;
+    data["errorcode"] = TOKEN_ERROR;
     data["msg"] = "Token does not match with username!";
     rtn["data"] = data;
     return rtn;
@@ -129,6 +135,13 @@ module.exports = {
       ctx.response.body = rtn;
       return;
     }
+    if (!user) {
+      data['errorcode'] = TOKEN_ERROR;
+      data['msg'] = 'no such user';
+      rtn['data'] = data;
+      ctx.response.body = rtn;
+      return;
+    }
     let now = Date.now();
     for (let t of all_token) {
       let interval = now - t["updated_at"];
@@ -138,12 +151,12 @@ module.exports = {
     }
     if (!username || !password) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect username password!";
       rtn["data"] = data;
     }
     if (user["password"] != password) {
-      data["errorcode"] = 400;
+      data["errorcode"] = PASSWORD_ERROR;
       data["msg"] = "Wrong password!";
       rtn["success"] = false;
       rtn["data"] = data;
@@ -164,7 +177,7 @@ module.exports = {
     let data = {};
     if (!token || !username) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect token and username";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -199,7 +212,7 @@ module.exports = {
     let data = {};
     if (!token) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect token";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -239,7 +252,11 @@ module.exports = {
     let endtime = ctx.request.body["endtime"];
     if (!token && !title && !summary && !starttime && !endtime) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      if (!token) {
+        data["errorcode"] = NO_TOKEN;
+      } else {
+        data["errorcode"] = PARAM_ERROR;
+      }
       data["msg"] = "Expect token title summary starttime endtime";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -290,7 +307,7 @@ module.exports = {
     let data = [];
     if (!token) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect token";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -338,7 +355,7 @@ module.exports = {
     let data = {};
     if (!token) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = PARAM_ERROR;
       data["msg"] = "Expect token";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -384,7 +401,11 @@ module.exports = {
     let data = {};
     if (!token || !name || !votes) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      if (!token) {
+        data["errorcode"] = NO_TOKEN;
+      } else {
+        data["errorcode"] = PARAM_ERROR;
+      }
       data["msg"] = "Expect token name votes";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -404,7 +425,7 @@ module.exports = {
     candidate = await Candidate.find({ name: name });
     if (!candidate) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NOT_FOUND;
       data["msg"] = "Can not find candidate!";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -422,7 +443,7 @@ module.exports = {
     let data = [];
     if (!token) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect token";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -473,7 +494,11 @@ module.exports = {
     let data = {};
     if (!token || !id || (!avater && !name && !info)) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      if (!token) {
+        data["errorcode"] = NO_TOKEN;
+      } else {
+        data["errorcode"] = PARAM_ERROR;
+      }
       data["msg"] = "Expect token id avater name info";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -499,7 +524,7 @@ module.exports = {
       if (!candidate) {
         rtn["success"] = false;
         data["msg"] = "no such candidate";
-        data["errorcode"] = 400;
+        data["errorcode"] = NOT_FOUND;
         rtn["data"] = data;
         ctx.response.body = rtn;
       }
@@ -532,7 +557,11 @@ module.exports = {
     let data = [];
     if (!token || !votes || (!avater || !name || !info)) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      if (!token) {
+        data["errorcode"] = NO_TOKEN;
+      } else {
+        data["errorcode"] = PARAM_ERROR;
+      }
       data["msg"] = "Expect token id avater name info";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -575,7 +604,7 @@ module.exports = {
     let data = {};
     if (!token) {
       rtn["success"] = false;
-      data["errorcode"] = 400;
+      data["errorcode"] = NO_TOKEN;
       data["msg"] = "Expect token";
       rtn["data"] = data;
       ctx.response.body = rtn;
@@ -605,7 +634,7 @@ module.exports = {
     if (row_num == 0) {
       rtn["success"] = false;
       data["msg"] = "no such candidate";
-      data["errorcode"] = "400";
+      data["errorcode"] = NOT_FOUND;
       rtn["data"] = data;
       ctx.response.body = rtn;
       return;
