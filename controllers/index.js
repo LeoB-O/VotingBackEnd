@@ -7,7 +7,7 @@ let Vote_log = model.Vote_log;
 
 module.exports = {
   "GET /test/:id": async (ctx, next) => {
-    ctx.response.body = '<form method="POST" action="http://192.168.1.102:3000/api/vote"><input type="text" name="id"><button>submit</button></form>';
-    
+    let code = ctx.request.query["code"];
+    ctx.response.body = code;
   }
 };
