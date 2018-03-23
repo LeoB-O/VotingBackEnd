@@ -175,6 +175,7 @@ module.exports = {
     }
 
     let id = ctx.request.body["id"];
+    let openid = ctx.request.body['openid']
     let agent = ctx.request.header["user-agent"];
     let ip = ctx.request.header["x-forwarded-for"];
     if (!ip || ip.Length == 0) {
@@ -191,7 +192,7 @@ module.exports = {
       .pop()
       .split(",")
       .pop();
-    if (!id) {
+    if (!id || !openid) {
       rtn = {};
       rtn["success"] = false;
       rtn["data"] = {};
@@ -217,7 +218,7 @@ module.exports = {
     }
     try {
       var vote_log = await Vote_log.find({
-        where: { ip: ip, agent:agent },
+        where: { ip: ip, agent:agent, openid:openid },
         order: [["id", "DESC"]]
       });
     } catch (err) {

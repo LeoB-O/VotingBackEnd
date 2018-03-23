@@ -17,6 +17,7 @@
         "url": "https://github.com/michaelliao/learn-javascript.git"
     },
     "dependencies": {
+        "async": "^2.6.0",
         "koa": "2.0.0",
         "koa-bodyparser": "3.2.0",
         "koa-router": "7.0.0",
@@ -24,6 +25,7 @@
         "koa2-useragent": "^0.2.8",
         "mysql": "2.11.1",
         "npm": "^5.7.1",
-        "sequelize": "3.24.1"
+        "sequelize": "3.24.1",
+        "sync-request": "^6.0.0"
     }
 }

@@ -14,5 +14,9 @@ module.exports = db.defineModel('vote_log', {
     agent: {
         type: db.TEXT,
         allowNull: true
+    },
+    openid: {
+        type: db.STRING(255),
+        allowNull: true
     }
 });
