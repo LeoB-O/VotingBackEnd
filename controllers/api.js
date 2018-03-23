@@ -5,10 +5,18 @@ let Setting = model.Setting;
 let User = model.User;
 let Vote_log = model.Vote_log;
 
+const SERVER_ERROR = 500;    //服务器错误
+const PRE_VOTE_TIME = 1001;  //早于投票时间
+const POST_VOTE_TIME = 1002; //投票时间已过
+const REPEAT_VOTE = 1003;    //重复投票给一个人
+const REACH_MAX = 1004;      //达到投票上限
+const CANDIDATE_NOT_EXIST = 1005;  //投票id不存在
+
 function getError(err) {
   let rtn = {};
   let data = {};
   data["msg"] = err.message;
+  data["errorcode"] = SERVER_ERROR;
   rtn["data"] = data;
   return rtn;
 }
@@ -25,6 +33,7 @@ function getUTC(time_str) {
   var hour = time_str.substring(sp_pos + 1, co_pos);
   var minute = time_str.substring(co_pos + 1);
   var utc = Date.UTC(year, mon - 1, day, hour, minute, 0, 0);
+  utc = utc - 8 * 60 * 60 * 1000;
   return utc;
 }
 
@@ -33,6 +42,43 @@ module.exports = {
     let rtn = {};
     let data = {};
     let temp_array = [];
+    let vote_to = [];
+    let ip = ctx.request.header["x-forwarded-for"];
+    if (!ip || ip.Length == 0) {
+      ip = ctx.request.header["Proxy-Client-IP"];
+    }
+    if (!ip || ip.Length == 0) {
+      ip = ctx.request.header["WL-Proxy-Client-IP"];
+    }
+    if (!ip || ip.Length == 0) {
+      ip = ctx.request.ip;
+    }
+    ip = ip
+      .split(":")
+      .pop()
+      .split(",")
+      .pop();
+    try {
+      var vote_log = await Vote_log.find({
+        where: { ip: ip },
+        order: [["id", "DESC"]]
+      });
+    } catch (err) {
+      let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    if (!vote_log) {
+      data["vote_to"] = vote_to;
+    } else {
+      let interval = Date.now() - vote_log["updated_at"];
+      if (interval > 24 * 60 * 60 * 1000) {
+        data["vote_to"] = vote_to;
+      } else {
+        vote_to = JSON.parse(vote_log["vote_to"]);
+        data["vote_to"] = vote_to;
+      }
+    }
     try {
       var candidate = await Candidate.findAll({
         attributes: ["id", "name", "info", "vote_num", "avater"]
@@ -107,9 +153,15 @@ module.exports = {
       starttime = getUTC(starttime["value"]);
       endtime = getUTC(endtime["value"]);
       let now = Date.now();
-      if (now < starttime || now > endtime) {
-        rtn["data"]["msg"] = "not vote time";
-        rtn["data"]["errorcode"] = 400;
+      if (now < starttime) {
+        rtn["data"]["msg"] = "earlier than vote time";
+        rtn["data"]["errorcode"] = PRE_VOTE_TIME;
+        ctx.response.body = rtn;
+        return;
+      }
+      if (now > endtime) {
+        rtn["data"]["msg"] = "vote time has past";
+        rtn["data"]["errorcode"] = POST_VOTE_TIME;
         ctx.response.body = rtn;
         return;
       }
@@ -156,6 +208,7 @@ module.exports = {
       rtn["success"] = false;
       rtn["data"] = {};
       rtn["data"]["msg"] = "id does not exist";
+      rtn["data"]["errorcode"] = CANDIDATE_NOT_EXIST;
       ctx.response.body = rtn;
       return;
     }
@@ -207,6 +260,7 @@ module.exports = {
         rtn["data"] = {};
         rtn["vote_to"] = JSON.parse(vote_log["vote_to"]);
         rtn["data"]["msg"] = "Reach Max vote times!";
+        rtn["data"]["errorcode"] = REACH_MAX;
         ctx.response.body = rtn;
         return;
       } else {
@@ -218,6 +272,7 @@ module.exports = {
             rtn["data"] = {};
             rtn["data"]["vote_to"] = vote_to;
             rtn["data"]["msg"] = "Can't repeat vote to one person";
+            rtn["data"]["errorcode"] = REPEAT_VOTE;
             ctx.response.body = rtn;
             return;
           }
