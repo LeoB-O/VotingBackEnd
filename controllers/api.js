@@ -5,12 +5,12 @@ let Setting = model.Setting;
 let User = model.User;
 let Vote_log = model.Vote_log;
 
-const SERVER_ERROR = 500;    //服务器错误
-const PRE_VOTE_TIME = 1001;  //早于投票时间
+const SERVER_ERROR = 500; //服务器错误
+const PRE_VOTE_TIME = 1001; //早于投票时间
 const POST_VOTE_TIME = 1002; //投票时间已过
-const REPEAT_VOTE = 1003;    //重复投票给一个人
-const REACH_MAX = 1004;      //达到投票上限
-const CANDIDATE_NOT_EXIST = 1005;  //投票id不存在
+const REPEAT_VOTE = 1003; //重复投票给一个人
+const REACH_MAX = 1004; //达到投票上限
+const CANDIDATE_NOT_EXIST = 1005; //投票id不存在
 
 function getError(err) {
   let rtn = {};
@@ -40,6 +40,7 @@ function getUTC(time_str) {
 module.exports = {
   "GET /api/votes": async (ctx, next) => {
     let rtn = {};
+    let openid = ctx.request.query["openid"];
     let data = {};
     let temp_array = [];
     let vote_to = [];
@@ -62,7 +63,8 @@ module.exports = {
       .pop();
     try {
       var vote_log = await Vote_log.find({
-        where: { ip: ip, agent: agent },
+        // where: { ip: ip, agent: agent },
+        where: { openid: openid },
         order: [["id", "DESC"]]
       });
     } catch (err) {
@@ -73,8 +75,13 @@ module.exports = {
     if (!vote_log) {
       data["vote_to"] = vote_to;
     } else {
-      let interval = Date.now() - vote_log["updated_at"];
-      if (interval > 24 * 60 * 60 * 1000) {
+      //let interval = Date.now() - vote_log["updated_at"];
+      let today = new Date();
+      let post_date = new Date(vote["updated_at"]);
+      if (
+        today.getDate() != post_date.getDate() ||
+        today.getMonth() != post_date.getMonth()
+      ) {
         data["vote_to"] = vote_to;
       } else {
         vote_to = JSON.parse(vote_log["vote_to"]);
@@ -150,10 +157,10 @@ module.exports = {
     let rtn = {};
     rtn["data"] = {};
     try {
-      let starttime = await Setting.find({ where: { key: "beginTime" } });
-      let endtime = await Setting.find({ where: { key: "endTime" } });
-      starttime = getUTC(starttime["value"]);
-      endtime = getUTC(endtime["value"]);
+      let starttime = await Setting.find({ where: { key: "startTime" } });
+      let endtime = await Setting.find({ where: { key: "DieTime" } });
+      //starttime = getUTC(starttime["value"]);
+      //endtime = getUTC(endtime["value"]);
       let now = Date.now();
       if (now < starttime) {
         rtn["data"]["msg"] = "earlier than vote time";
@@ -175,7 +182,7 @@ module.exports = {
     }
 
     let id = ctx.request.body["id"];
-    let openid = ctx.request.body['openid']
+    let openid = ctx.request.body["openid"];
     let agent = ctx.request.header["user-agent"];
     let ip = ctx.request.header["x-forwarded-for"];
     if (!ip || ip.Length == 0) {
@@ -218,7 +225,8 @@ module.exports = {
     }
     try {
       var vote_log = await Vote_log.find({
-        where: { ip: ip, agent:agent, openid:openid },
+        // where: { ip: ip, agent:agent, openid:openid },
+        where: { openid: openid },
         order: [["id", "DESC"]]
       });
     } catch (err) {
@@ -235,8 +243,8 @@ module.exports = {
           ip: ip,
           vote_times: 1,
           vote_to: JSON.stringify(vote_to),
-          agent:agent,
-          openid:openid
+          agent: agent,
+          openid: openid
         });
       } catch (err) {
         let rtn = getError(err);
@@ -244,8 +252,13 @@ module.exports = {
         return;
       }
     } else {
-      let interval = Date.now() - vote_log["updated_at"];
-      if (60 * 60 * 24 * 1000 < interval) {
+      //let interval = Date.now() - vote_log["updated_at"];
+      let today = new Date();
+      let post_date = new Date(vote["updated_at"]);
+      if (
+        today.getDate() != post_date.getDate() ||
+        today.getMonth() != post_date.getMonth()
+      ) {
         let vote_to = [id];
         try {
           rtn["data"] = {};
@@ -254,8 +267,8 @@ module.exports = {
             ip: ip,
             vote_times: 1,
             vote_to: JSON.stringify(vote_to),
-            agent:agent,
-            openid:openid
+            agent: agent,
+            openid: openid
           });
         } catch (err) {
           let rtn = getError(err);
@@ -296,8 +309,9 @@ module.exports = {
           },
           {
             where: {
-              ip: ip,
-              id: vote_log["id"]
+              // ip: ip,
+              id: vote_log["id"],
+              openid: openid
             }
           }
         );

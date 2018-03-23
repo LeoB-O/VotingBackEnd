@@ -25,13 +25,14 @@ module.exports = {
     result = JSON.parse(result);
     console.log(result);
     let rtn = {};
+    rtn["data"] = {};
     if (!result["openid"]) {
       rtn["success"] = false;
     } else {
       rtn["success"] = true;
+      rtn["data"]["openid"] = result["openid"];
     }
-    rtn["data"] = {};
-    rtn["data"]["openid"] = result["openid"];
+   // ctx.append("Access-Control-Allow-Origin", "*");
     ctx.response.body = rtn;
 
     // http.get(
