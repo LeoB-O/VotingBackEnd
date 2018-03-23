@@ -43,7 +43,9 @@ module.exports = {
     let data = {};
     let temp_array = [];
     let vote_to = [];
+    console.log(ctx.request);
     let ip = ctx.request.header["x-forwarded-for"];
+    let agent = ctx.request.header["user-agent"];
     if (!ip || ip.Length == 0) {
       ip = ctx.request.header["Proxy-Client-IP"];
     }
@@ -60,7 +62,7 @@ module.exports = {
       .pop();
     try {
       var vote_log = await Vote_log.find({
-        where: { ip: ip },
+        where: { ip: ip, agent: agent },
         order: [["id", "DESC"]]
       });
     } catch (err) {
@@ -173,6 +175,7 @@ module.exports = {
     }
 
     let id = ctx.request.body["id"];
+    let agent = ctx.request.header["user-agent"];
     let ip = ctx.request.header["x-forwarded-for"];
     if (!ip || ip.Length == 0) {
       ip = ctx.request.header["Proxy-Client-IP"];
@@ -214,7 +217,7 @@ module.exports = {
     }
     try {
       var vote_log = await Vote_log.find({
-        where: { ip: ip },
+        where: { ip: ip, agent:agent },
         order: [["id", "DESC"]]
       });
     } catch (err) {
@@ -230,7 +233,8 @@ module.exports = {
         await Vote_log.create({
           ip: ip,
           vote_times: 1,
-          vote_to: JSON.stringify(vote_to)
+          vote_to: JSON.stringify(vote_to),
+          agent:agent
         });
       } catch (err) {
         let rtn = getError(err);
@@ -247,7 +251,8 @@ module.exports = {
           await Vote_log.create({
             ip: ip,
             vote_times: 1,
-            vote_to: JSON.stringify(vote_to)
+            vote_to: JSON.stringify(vote_to),
+            agent:agent
           });
         } catch (err) {
           let rtn = getError(err);

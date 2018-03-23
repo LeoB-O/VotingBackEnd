@@ -10,5 +10,9 @@ module.exports = db.defineModel('vote_log', {
         allowNull: true,
         defaultValue: '[]'
     },
-    vote_times: db.INTEGER
+    vote_times: db.INTEGER,
+    agent: {
+        type: db.TEXT,
+        allowNull: true
+    }
 });
