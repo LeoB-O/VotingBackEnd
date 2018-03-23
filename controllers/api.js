@@ -235,7 +235,8 @@ module.exports = {
           ip: ip,
           vote_times: 1,
           vote_to: JSON.stringify(vote_to),
-          agent:agent
+          agent:agent,
+          openid:openid
         });
       } catch (err) {
         let rtn = getError(err);
@@ -253,7 +254,8 @@ module.exports = {
             ip: ip,
             vote_times: 1,
             vote_to: JSON.stringify(vote_to),
-            agent:agent
+            agent:agent,
+            openid:openid
           });
         } catch (err) {
           let rtn = getError(err);
