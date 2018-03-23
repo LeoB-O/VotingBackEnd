@@ -25,14 +25,45 @@ module.exports = {
     result = JSON.parse(result);
     console.log(result);
     let rtn = {};
-    rtn["data"] = {};
+    let data = {};
     if (!result["openid"]) {
       rtn["success"] = false;
+      rtn["data"] = data;
     } else {
+      const openid = result["openid"];
+      try {
+        var vote_log = await Vote_log.find({
+          // where: { ip: ip, agent: agent },
+          where: { openid: openid },
+          order: [["id", "DESC"]]
+        });
+      } catch (err) {
+        rtn["success"] = false;
+        rtn["data"] = data;
+        ctx.response.body = rtn;
+        return;
+      }
+      if (!vote_log) {
+        data["vote_to"] = [];
+      } else {
+        //let interval = Date.now() - vote_log["updated_at"];
+        let today = new Date();
+        let post_date = new Date(vote_log["updated_at"]);
+        if (
+          today.getDate() != post_date.getDate() ||
+          today.getMonth() != post_date.getMonth()
+        ) {
+          data["vote_to"] = [];
+        } else {
+          const vote_to = JSON.parse(vote_log["vote_to"]);
+          data["vote_to"] = vote_to;
+        }
+      }
       rtn["success"] = true;
-      rtn["data"]["openid"] = result["openid"];
+      rtn["data"] = data;
+      rtn["data"]["openid"] = openid;
     }
-   // ctx.append("Access-Control-Allow-Origin", "*");
+    // ctx.append("Access-Control-Allow-Origin", "*");
     ctx.response.body = rtn;
 
     // http.get(

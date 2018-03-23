@@ -40,7 +40,7 @@ function getUTC(time_str) {
 module.exports = {
   "GET /api/votes": async (ctx, next) => {
     let rtn = {};
-    let openid = ctx.request.query["openid"];
+    // let openid = ctx.request.query["openid"];
     let data = {};
     let temp_array = [];
     let vote_to = [];
@@ -61,33 +61,33 @@ module.exports = {
       .pop()
       .split(",")
       .pop();
-    try {
-      var vote_log = await Vote_log.find({
-        // where: { ip: ip, agent: agent },
-        where: { openid: openid },
-        order: [["id", "DESC"]]
-      });
-    } catch (err) {
-      let rtn = getError(err);
-      ctx.response.body = rtn;
-      return;
-    }
-    if (!vote_log) {
-      data["vote_to"] = vote_to;
-    } else {
-      //let interval = Date.now() - vote_log["updated_at"];
-      let today = new Date();
-      let post_date = new Date(vote_log["updated_at"]);
-      if (
-        today.getDate() != post_date.getDate() ||
-        today.getMonth() != post_date.getMonth()
-      ) {
-        data["vote_to"] = vote_to;
-      } else {
-        vote_to = JSON.parse(vote_log["vote_to"]);
-        data["vote_to"] = vote_to;
-      }
-    }
+    // try {
+    //   var vote_log = await Vote_log.find({
+    //     // where: { ip: ip, agent: agent },
+    //     where: { openid: openid },
+    //     order: [["id", "DESC"]]
+    //   });
+    // } catch (err) {
+    //   let rtn = getError(err);
+    //   ctx.response.body = rtn;
+    //   return;
+    // }
+    // if (!vote_log) {
+    //   data["vote_to"] = vote_to;
+    // } else {
+    //   //let interval = Date.now() - vote_log["updated_at"];
+    //   let today = new Date();
+    //   let post_date = new Date(vote_log["updated_at"]);
+    //   if (
+    //     today.getDate() != post_date.getDate() ||
+    //     today.getMonth() != post_date.getMonth()
+    //   ) {
+    //     data["vote_to"] = vote_to;
+    //   } else {
+    //     vote_to = JSON.parse(vote_log["vote_to"]);
+    //     data["vote_to"] = vote_to;
+    //   }
+    // }
     try {
       var candidate = await Candidate.findAll({
         attributes: ["id", "name", "info", "vote_num", "avater"]
