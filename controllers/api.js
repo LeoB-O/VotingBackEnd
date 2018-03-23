@@ -77,7 +77,7 @@ module.exports = {
     } else {
       //let interval = Date.now() - vote_log["updated_at"];
       let today = new Date();
-      let post_date = new Date(vote["updated_at"]);
+      let post_date = new Date(vote_log["updated_at"]);
       if (
         today.getDate() != post_date.getDate() ||
         today.getMonth() != post_date.getMonth()
@@ -254,7 +254,7 @@ module.exports = {
     } else {
       //let interval = Date.now() - vote_log["updated_at"];
       let today = new Date();
-      let post_date = new Date(vote["updated_at"]);
+      let post_date = new Date(vote_log["updated_at"]);
       if (
         today.getDate() != post_date.getDate() ||
         today.getMonth() != post_date.getMonth()
