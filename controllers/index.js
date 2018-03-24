@@ -34,7 +34,7 @@ module.exports = {
       const openid = result["openid"];
       try {
         const openidObj = await OPENID.find({
-          where: { openid: openid },
+          where: { openid: openid }
         });
         if (!openidObj) {
           await OPENID.create({
