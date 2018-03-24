@@ -5,6 +5,7 @@ let Candidate = model.Candidate;
 let Setting = model.Setting;
 let User = model.User;
 let Vote_log = model.Vote_log;
+const OPENID = model.OpenId;
 
 module.exports = {
   "GET /test/": async (ctx, next) => {
@@ -32,6 +33,27 @@ module.exports = {
     } else {
       const openid = result["openid"];
       try {
+        const openidObj = await OPENID.find({
+          where: { openid: openid },
+        });
+        if (!openidObj) {
+          await OPENID.create({
+                openid: openid,
+                created_at: Date.now(),
+                updated_at: Date.now()
+          });
+        } else {
+            await OPENID.update(
+                {
+                    updated_at: Date.now()
+                },
+                {
+                    where: {
+                        openid: openid
+                    }
+                }
+            );
+        }
         var vote_log = await Vote_log.find({
           // where: { ip: ip, agent: agent },
           where: { openid: openid },

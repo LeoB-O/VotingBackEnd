@@ -4,6 +4,7 @@ let Candidate = model.Candidate;
 let Setting = model.Setting;
 let User = model.User;
 let Vote_log = model.Vote_log;
+const OPENID = model.OpenId;
 
 const SERVER_ERROR = 500; //服务器错误
 const PRE_VOTE_TIME = 1001; //早于投票时间
@@ -11,6 +12,7 @@ const POST_VOTE_TIME = 1002; //投票时间已过
 const REPEAT_VOTE = 1003; //重复投票给一个人
 const REACH_MAX = 1004; //达到投票上限
 const CANDIDATE_NOT_EXIST = 1005; //投票id不存在
+const OPENID_INVALID = 1006;
 
 function getError(err) {
   let rtn = {};
@@ -207,10 +209,21 @@ module.exports = {
       ctx.response.body = rtn;
       return;
     }
+    // valid candidate & openid
     try {
+      var openObj = await OPENID.find({ where: { openid: openid } });
       var candidate = await Candidate.find({ where: { id: id } });
     } catch (err) {
       let rtn = getError(err);
+      ctx.response.body = rtn;
+      return;
+    }
+    if (!openObj) {
+      let rtn = {};
+      rtn["success"] = false;
+      rtn["data"] = {};
+      rtn["data"]["msg"] = "invalid openid";
+      rtn["data"]["errorcode"] = OPENID_INVALID;
       ctx.response.body = rtn;
       return;
     }
