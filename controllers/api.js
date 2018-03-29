@@ -158,194 +158,200 @@ module.exports = {
   "POST /api/vote": async (ctx, next) => {
     let rtn = {};
     rtn["data"] = {};
-    try {
-      let starttime = await Setting.find({ where: { key: "startTime" } });
-      let endtime = await Setting.find({ where: { key: "DieTime" } });
-      //starttime = getUTC(starttime["value"]);
-      //endtime = getUTC(endtime["value"]);
-      let now = Date.now();
-      if (now < starttime) {
-        rtn["data"]["msg"] = "earlier than vote time";
-        rtn["data"]["errorcode"] = PRE_VOTE_TIME;
-        ctx.response.body = rtn;
-        return;
-      }
-      if (now > endtime) {
-        rtn["data"]["msg"] = "vote time has past";
-        rtn["data"]["errorcode"] = POST_VOTE_TIME;
-        ctx.response.body = rtn;
-        return;
-      }
-    } catch (err) {
-      rtn["data"]["msg"] = err.message;
-      rtn["data"]["errorcode"] = 500;
-      ctx.response.body = rtn;
-      return;
-    }
-
-    let id = ctx.request.body["id"];
-    let openid = ctx.request.body["openid"];
-    let agent = ctx.request.header["user-agent"];
-    let ip = ctx.request.header["x-forwarded-for"];
-    if (!ip || ip.Length == 0) {
-      ip = ctx.request.header["Proxy-Client-IP"];
-    }
-    if (!ip || ip.Length == 0) {
-      ip = ctx.request.header["WL-Proxy-Client-IP"];
-    }
-    if (!ip || ip.Length == 0) {
-      ip = ctx.request.ip;
-    }
-    ip = ip
-      .split(":")
-      .pop()
-      .split(",")
-      .pop();
-    if (!id || !openid) {
-      rtn = {};
-      rtn["success"] = false;
-      rtn["data"] = {};
-      rtn["data"]["msg"] = "Params Error! Expect id!";
-      ctx.response.body = rtn;
-      return;
-    }
-    // valid candidate & openid
-    try {
-      var openObj = await OPENID.find({ where: { openid: openid } });
-      var candidate = await Candidate.find({ where: { id: id } });
-    } catch (err) {
-      let rtn = getError(err);
-      ctx.response.body = rtn;
-      return;
-    }
-    if (!openObj) {
-      let rtn = {};
-      rtn["success"] = false;
-      rtn["data"] = {};
-      rtn["data"]["msg"] = "invalid openid";
-      rtn["data"]["errorcode"] = OPENID_INVALID;
-      ctx.response.body = rtn;
-      return;
-    }
-    if (!candidate) {
-      let rtn = {};
-      rtn["success"] = false;
-      rtn["data"] = {};
-      rtn["data"]["msg"] = "id does not exist";
-      rtn["data"]["errorcode"] = CANDIDATE_NOT_EXIST;
-      ctx.response.body = rtn;
-      return;
-    }
-    try {
-      var vote_log = await Vote_log.find({
-        // where: { ip: ip, agent:agent, openid:openid },
-        where: { openid: openid },
-        order: [["id", "DESC"]]
-      });
-    } catch (err) {
-      let rtn = getError(err);
-      ctx.response.body = rtn;
-      return;
-    }
-    if (!vote_log) {
-      let vote_to = [id];
-      try {
-        rtn["data"] = {};
-        rtn["data"]["vote_to"] = vote_to;
-        await Vote_log.create({
-          ip: ip,
-          vote_times: 1,
-          vote_to: JSON.stringify(vote_to),
-          agent: agent,
-          openid: openid
-        });
-      } catch (err) {
-        let rtn = getError(err);
-        ctx.response.body = rtn;
-        return;
-      }
-    } else {
-      //let interval = Date.now() - vote_log["updated_at"];
-      let today = new Date();
-      let post_date = new Date(vote_log["updated_at"]);
-      if (
-        today.getDate() != post_date.getDate() ||
-        today.getMonth() != post_date.getMonth()
-      ) {
-        let vote_to = [id];
-        try {
-          rtn["data"] = {};
-          rtn["data"]["vote_to"] = vote_to;
-          await Vote_log.create({
-            ip: ip,
-            vote_times: 1,
-            vote_to: JSON.stringify(vote_to),
-            agent: agent,
-            openid: openid
-          });
-        } catch (err) {
-          let rtn = getError(err);
-          ctx.response.body = rtn;
-          return;
-        }
-      } else if (vote_log["vote_times"] >= 10) {
-        let rtn = {};
-        rtn["success"] = false;
-        rtn["data"] = {};
-        rtn["vote_to"] = JSON.parse(vote_log["vote_to"]);
-        rtn["data"]["msg"] = "Reach Max vote times!";
-        rtn["data"]["errorcode"] = REACH_MAX;
-        ctx.response.body = rtn;
-        return;
-      } else {
-        let vote_to = JSON.parse(vote_log["vote_to"]);
-        for (let c of vote_to) {
-          if (c == id) {
-            let rtn = {};
-            rtn["success"] = false;
-            rtn["data"] = {};
-            rtn["data"]["vote_to"] = vote_to;
-            rtn["data"]["msg"] = "Can't repeat vote to one person";
-            rtn["data"]["errorcode"] = REPEAT_VOTE;
-            ctx.response.body = rtn;
-            return;
-          }
-        }
-        vote_to.push(id);
-        rtn["data"] = {};
-        rtn["data"]["vite_to"] = vote_to;
-        await Vote_log.update(
-          {
-            vote_times: vote_log["vote_times"] + 1,
-            updated_at: Date.now(),
-            vote_to: JSON.stringify(vote_to)
-          },
-          {
-            where: {
-              // ip: ip,
-              id: vote_log["id"],
-              openid: openid
-            }
-          }
-        );
-      }
-    }
-    candidate = candidate.get();
-    let votes = candidate["vote_num"] + 1;
-    try {
-      await Candidate.update(
-        {
-          vote_num: votes,
-          updated_at: Date.now()
-        },
-        { where: { id: id } }
-      );
-    } catch (err) {
-      let rtn = getError(err);
-      ctx.response.body = rtn;
-      return;
-    }
-    rtn["success"] = true;
+    rtn["data"]["msg"] = "vote time has past";
+    rtn["data"]["errorcode"] = POST_VOTE_TIME;
     ctx.response.body = rtn;
+    return;
+  //   let rtn = {};
+  //   rtn["data"] = {};
+  //   try {
+  //     let starttime = await Setting.find({ where: { key: "startTime" } });
+  //     let endtime = await Setting.find({ where: { key: "DieTime" } });
+  //     //starttime = getUTC(starttime["value"]);
+  //     //endtime = getUTC(endtime["value"]);
+  //     let now = Date.now();
+  //     if (now < starttime) {
+  //       rtn["data"]["msg"] = "earlier than vote time";
+  //       rtn["data"]["errorcode"] = PRE_VOTE_TIME;
+  //       ctx.response.body = rtn;
+  //       return;
+  //     }
+  //     if (now > endtime) {
+  //       rtn["data"]["msg"] = "vote time has past";
+  //       rtn["data"]["errorcode"] = POST_VOTE_TIME;
+  //       ctx.response.body = rtn;
+  //       return;
+  //     }
+  //   } catch (err) {
+  //     rtn["data"]["msg"] = err.message;
+  //     rtn["data"]["errorcode"] = 500;
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+
+  //   let id = ctx.request.body["id"];
+  //   let openid = ctx.request.body["openid"];
+  //   let agent = ctx.request.header["user-agent"];
+  //   let ip = ctx.request.header["x-forwarded-for"];
+  //   if (!ip || ip.Length == 0) {
+  //     ip = ctx.request.header["Proxy-Client-IP"];
+  //   }
+  //   if (!ip || ip.Length == 0) {
+  //     ip = ctx.request.header["WL-Proxy-Client-IP"];
+  //   }
+  //   if (!ip || ip.Length == 0) {
+  //     ip = ctx.request.ip;
+  //   }
+  //   ip = ip
+  //     .split(":")
+  //     .pop()
+  //     .split(",")
+  //     .pop();
+  //   if (!id || !openid) {
+  //     rtn = {};
+  //     rtn["success"] = false;
+  //     rtn["data"] = {};
+  //     rtn["data"]["msg"] = "Params Error! Expect id!";
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   // valid candidate & openid
+  //   try {
+  //     var openObj = await OPENID.find({ where: { openid: openid } });
+  //     var candidate = await Candidate.find({ where: { id: id } });
+  //   } catch (err) {
+  //     let rtn = getError(err);
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   if (!openObj) {
+  //     let rtn = {};
+  //     rtn["success"] = false;
+  //     rtn["data"] = {};
+  //     rtn["data"]["msg"] = "invalid openid";
+  //     rtn["data"]["errorcode"] = OPENID_INVALID;
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   if (!candidate) {
+  //     let rtn = {};
+  //     rtn["success"] = false;
+  //     rtn["data"] = {};
+  //     rtn["data"]["msg"] = "id does not exist";
+  //     rtn["data"]["errorcode"] = CANDIDATE_NOT_EXIST;
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   try {
+  //     var vote_log = await Vote_log.find({
+  //       // where: { ip: ip, agent:agent, openid:openid },
+  //       where: { openid: openid },
+  //       order: [["id", "DESC"]]
+  //     });
+  //   } catch (err) {
+  //     let rtn = getError(err);
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   if (!vote_log) {
+  //     let vote_to = [id];
+  //     try {
+  //       rtn["data"] = {};
+  //       rtn["data"]["vote_to"] = vote_to;
+  //       await Vote_log.create({
+  //         ip: ip,
+  //         vote_times: 1,
+  //         vote_to: JSON.stringify(vote_to),
+  //         agent: agent,
+  //         openid: openid
+  //       });
+  //     } catch (err) {
+  //       let rtn = getError(err);
+  //       ctx.response.body = rtn;
+  //       return;
+  //     }
+  //   } else {
+  //     //let interval = Date.now() - vote_log["updated_at"];
+  //     let today = new Date();
+  //     let post_date = new Date(vote_log["updated_at"]);
+  //     if (
+  //       today.getDate() != post_date.getDate() ||
+  //       today.getMonth() != post_date.getMonth()
+  //     ) {
+  //       let vote_to = [id];
+  //       try {
+  //         rtn["data"] = {};
+  //         rtn["data"]["vote_to"] = vote_to;
+  //         await Vote_log.create({
+  //           ip: ip,
+  //           vote_times: 1,
+  //           vote_to: JSON.stringify(vote_to),
+  //           agent: agent,
+  //           openid: openid
+  //         });
+  //       } catch (err) {
+  //         let rtn = getError(err);
+  //         ctx.response.body = rtn;
+  //         return;
+  //       }
+  //     } else if (vote_log["vote_times"] >= 10) {
+  //       let rtn = {};
+  //       rtn["success"] = false;
+  //       rtn["data"] = {};
+  //       rtn["vote_to"] = JSON.parse(vote_log["vote_to"]);
+  //       rtn["data"]["msg"] = "Reach Max vote times!";
+  //       rtn["data"]["errorcode"] = REACH_MAX;
+  //       ctx.response.body = rtn;
+  //       return;
+  //     } else {
+  //       let vote_to = JSON.parse(vote_log["vote_to"]);
+  //       for (let c of vote_to) {
+  //         if (c == id) {
+  //           let rtn = {};
+  //           rtn["success"] = false;
+  //           rtn["data"] = {};
+  //           rtn["data"]["vote_to"] = vote_to;
+  //           rtn["data"]["msg"] = "Can't repeat vote to one person";
+  //           rtn["data"]["errorcode"] = REPEAT_VOTE;
+  //           ctx.response.body = rtn;
+  //           return;
+  //         }
+  //       }
+  //       vote_to.push(id);
+  //       rtn["data"] = {};
+  //       rtn["data"]["vite_to"] = vote_to;
+  //       await Vote_log.update(
+  //         {
+  //           vote_times: vote_log["vote_times"] + 1,
+  //           updated_at: Date.now(),
+  //           vote_to: JSON.stringify(vote_to)
+  //         },
+  //         {
+  //           where: {
+  //             // ip: ip,
+  //             id: vote_log["id"],
+  //             openid: openid
+  //           }
+  //         }
+  //       );
+  //     }
+  //   }
+  //   candidate = candidate.get();
+  //   let votes = candidate["vote_num"] + 1;
+  //   try {
+  //     await Candidate.update(
+  //       {
+  //         vote_num: votes,
+  //         updated_at: Date.now()
+  //       },
+  //       { where: { id: id } }
+  //     );
+  //   } catch (err) {
+  //     let rtn = getError(err);
+  //     ctx.response.body = rtn;
+  //     return;
+  //   }
+  //   rtn["success"] = true;
+  //   ctx.response.body = rtn;
   }
 };
